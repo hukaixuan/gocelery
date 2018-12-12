@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 )
 
 // RedisCeleryBroker is CeleryBroker for Redis
@@ -37,17 +37,19 @@ func NewRedisPool(host string, db int, pass string) *redis.Pool {
 		MaxIdle:     3,
 		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", host, redis.DialDatabase(db))
+			c, err := redis.Dial("tcp", host)
 			if err != nil {
 				return nil, err
 			}
-			if pass != "" {
-				if _, err = c.Do("AUTH", pass); err != nil {
-					c.Close()
-					return nil, err
-				}
+			if _, err = c.Do("AUTH", pass); err != nil {
+				c.Close()
+				return nil, err
 			}
-			return c, err
+			if _, err := c.Do("SELECT", db); err != nil {
+				c.Close()
+				return nil, err
+			}
+			return c, nil
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			_, err := c.Do("PING")
