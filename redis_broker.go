@@ -41,9 +41,11 @@ func NewRedisPool(host string, db int, pass string) *redis.Pool {
 			if err != nil {
 				return nil, err
 			}
-			if _, err = c.Do("AUTH", pass); err != nil {
-				c.Close()
-				return nil, err
+			if pass != "" {
+				if _, err = c.Do("AUTH", pass); err != nil {
+					c.Close()
+					return nil, err
+				}
 			}
 			if _, err := c.Do("SELECT", db); err != nil {
 				c.Close()
